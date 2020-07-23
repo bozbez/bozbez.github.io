@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0;}
+
+        body, html { height: 100%; }
+
+        #canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+
+    <script>
+        class Renderer {
+            constructor(canvas_name) {
+                this.canvas = document.getElementById(canvas_name)
+                this.ctx = this.canvas.getContext("2d")
+
+                this.run_button = null
+
+                this.animation_id = 0
+                this.running = false
+
+                this.start_time = 0
+
+                this.num_iterations = 25
+                this.iteration_duration = 2000
+                this.show_iteration = true
+
+                this.radius = 50
+                this.margin = 15
+
+                this.bg_colour = "#282a36"
+                this.fg_colour = "#50fa7b"
+
+                this.canvas.style.backgroundColor = this.bg_colour
+            }
+
+            prep_canvas() {
+                let dpr = window.devicePixelRatio || 1
+                let rect = this.canvas.getBoundingClientRect()
+
+                this.canvas.width = rect.width * dpr
+                this.canvas.height = rect.height * dpr
+
+                this.ctx.scale(dpr, dpr)
+
+                return rect
+            }
+
+            run() {
+                if (this.running) {
+                    window.cancelAnimationFrame(this.animation_id)
+
+                    let rect = this.prep_canvas()
+                    this.ctx.clearRect(0, 0, rect.width, rect.height)
+
+                    this.running = false
+                    this.run_button.name("Start")
+
+                    return
+                }
+
+                this.running = true
+                this.animation_id = window.requestAnimationFrame(this.draw_init.bind(this))
+
+                this.run_button.name("Stop")
+            }
+
+            draw_init(t) {
+                this.start_time = t
+                window.requestAnimationFrame(this.draw.bind(this))
+            }
+
+            draw(t) {
+                t -= this.start_time
+                let t_num = Math.floor(t / this.iteration_duration)
+
+                if (t_num >= this.num_iterations) {
+                    this.run()
+                    return
+                }
+
+                let rect = this.prep_canvas()
+
+                let magnitude = rect.width - this.radius * 2 - (rect.width * this.margin / 100)
+                let offset = (rect.width - magnitude) / 2
+
+                let x = offset + magnitude * (1 - Math.cos(2 * Math.PI * t / this.iteration_duration)) / 2
+
+                this.ctx.clearRect(0, 0, rect.width, rect.height)
+                this.ctx.fillStyle = this.fg_colour
+
+                this.ctx.beginPath();
+                this.ctx.arc(x, rect.height / 2, this.radius, 0, 2 * Math.PI)
+                this.ctx.fill();
+
+                if (this.show_iteration) {
+                    this.ctx.font = "30px Courier New"
+                    this.ctx.fillText(t_num + 1, 30, 50)
+                }
+
+                this.animation_id = window.requestAnimationFrame(this.draw.bind(this))
+            }
+
+            update_bg() {
+                this.canvas.style.backgroundColor = this.bg_colour
+            }
+        }
+
+
+        window.onload = function() {
+            let gui = new dat.GUI()
+            let renderer = new Renderer("canvas")
+
+            gui.addColor(renderer, "bg_colour").name("BG colour").onChange(renderer.update_bg.bind(renderer))
+            gui.addColor(renderer, "fg_colour").name("FG colour")
+
+            gui.add(renderer, "radius").name("Radius (px)")
+            gui.add(renderer, "margin").name("Margin (%)")
+            gui.add(renderer, "iteration_duration").name("Period (msec)")
+            gui.add(renderer, "num_iterations").name("Repeats")
+            gui.add(renderer, "show_iteration").name("Show Iteration")
+
+            renderer.run_button = gui.add(renderer, "run").name("Start")
+
+            document.onkeypress = function(e) {
+                e = e || window.event
+                if (e.keyCode == 32) renderer.run()
+            }
+        }
+    </script>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+</html>
