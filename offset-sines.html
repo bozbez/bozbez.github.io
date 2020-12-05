@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        function startAudio() {
+            let start_button = document.getElementById("start")
+            start_button.hidden = true
+
+            let status_div = document.getElementById("status")
+            let status_log = (str) => { status_div.innerHTML += str + "<br/>" }
+
+            let audio_ctx = new (window.AudioContext || window.webkitAudioContext)()
+            if (audio_ctx) status_log("Created audio context")
+
+            let oscillator_l = audio_ctx.createOscillator()
+            let oscillator_r = audio_ctx.createOscillator()
+
+            if (oscillator_l && oscillator_r) status_log("Created oscillator nodes")
+
+            let merger = audio_ctx.createChannelMerger(2)
+            if (merger) status_log("Created merger node")
+
+            let gain = audio_ctx.createGain()
+            if (gain) status_log("Created gain node")
+
+            oscillator_l.frequency.setValueAtTime(858, audio_ctx.currentTime)
+            oscillator_r.frequency.setValueAtTime(859, audio_ctx.currentTime)
+
+            status_log("Set L frequency to 858Hz")
+            status_log("Set R frequency to 859Hz")
+
+            oscillator_l.connect(merger, 0, 0)
+            oscillator_r.connect(merger, 0, 1)
+
+            merger.connect(gain)
+
+            gain.gain.value = 0.02;
+            status_log("Set gain to " + gain.gain.value)
+
+            gain.connect(audio_ctx.destination)
+
+            oscillator_l.start()
+            oscillator_r.start()
+            status_log("Oscillators started")
+        }
+    </script>
+</head>
+<body style="background-color: black">
+    <button onclick="startAudio()" id="start">start</button>
+    <div id="status" style="color: white; font-family: monospace"></div>
+</body>
+</html>
